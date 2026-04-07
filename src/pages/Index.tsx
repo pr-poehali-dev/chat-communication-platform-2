@@ -3,6 +3,7 @@ import Sidebar from '@/components/Sidebar';
 import ChatList from '@/components/ChatList';
 import ChatWindow from '@/components/ChatWindow';
 import CallsSection from '@/components/CallsSection';
+import MembersList from '@/components/MembersList';
 
 type Section = 'chats' | 'groups' | 'calls';
 
@@ -41,13 +42,18 @@ export default function Index() {
         </div>
       )}
 
-      <div className="flex-1 flex flex-col overflow-hidden relative">
-        {section === 'calls' ? (
-          <CallsSection />
-        ) : selected ? (
-          <ChatWindow name={selected.name} avatar={selected.avatar} online={selected.online} />
-        ) : (
-          <EmptyState section={section} />
+      <div className="flex-1 flex overflow-hidden relative">
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {section === 'calls' ? (
+            <CallsSection />
+          ) : selected ? (
+            <ChatWindow name={selected.name} avatar={selected.avatar} online={selected.online} />
+          ) : (
+            <EmptyState section={section} />
+          )}
+        </div>
+        {section === 'groups' && selected && (
+          <MembersList chatId={selected.id} />
         )}
       </div>
     </div>
