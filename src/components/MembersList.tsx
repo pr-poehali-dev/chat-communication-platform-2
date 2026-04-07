@@ -48,20 +48,23 @@ const defaultMembers: Member[] = [
 
 interface MembersListProps {
   chatId: number;
+  hideHeader?: boolean;
 }
 
-export default function MembersList({ chatId }: MembersListProps) {
+export default function MembersList({ chatId, hideHeader }: MembersListProps) {
   const members = groupMembers[chatId] ?? defaultMembers;
   const online = members.filter(m => m.online);
   const offline = members.filter(m => !m.online);
 
   return (
-    <div className="w-52 flex-shrink-0 border-l border-border flex flex-col overflow-hidden">
-      <div className="px-3 py-3 border-b border-border">
-        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
-          Участники — {members.length}
+    <div className="w-52 flex-shrink-0 border-l border-border flex flex-col overflow-hidden h-full">
+      {!hideHeader && (
+        <div className="px-3 py-3 border-b border-border">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
+            Участники — {members.length}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
         {online.length > 0 && (
