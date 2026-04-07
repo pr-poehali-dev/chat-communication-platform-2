@@ -145,6 +145,20 @@
     border-radius: 18px 18px 18px 4px;
     border: 1px solid hsl(240 10% 20%);
   }
+  .chat-list-panel {
+    transition:
+      width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.25s ease;
+    overflow: hidden;
+  }
+  .chat-list-panel.collapsed {
+    width: 0 !important;
+    min-width: 0 !important;
+    opacity: 0;
+    pointer-events: none;
+  }
+
   .scrollbar-thin::-webkit-scrollbar {
     width: 4px;
   }

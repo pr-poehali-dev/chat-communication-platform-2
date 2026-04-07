@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
 import ChatList from '@/components/ChatList';
 import ChatWindow from '@/components/ChatWindow';
 import CallsSection from '@/components/CallsSection';
 import MembersList from '@/components/MembersList';
+import Icon from '@/components/ui/icon';
 
 type Section = 'chats' | 'groups' | 'calls';
 
@@ -22,22 +23,45 @@ export default function Index() {
     avatar: '🌙',
     online: true,
   });
+  const [listCollapsed, setListCollapsed] = useState(false);
+
+  const touchStartX = useRef<number | null>(null);
 
   const handleSectionChange = (s: Section) => {
     setSection(s);
     setSelected(null);
+    setListCollapsed(false);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX.current === null) return;
+    const dx = touchStartX.current - e.changedTouches[0].clientX;
+    if (dx > 60) setListCollapsed(true);
+    if (dx < -60) setListCollapsed(false);
+    touchStartX.current = null;
   };
 
   return (
-    <div className="h-screen flex overflow-hidden bg-background mesh-bg">
+    <div
+      className="h-screen flex overflow-hidden bg-background mesh-bg"
+      onTouchStart={handleTouchStart}
+      onTouchEnd={handleTouchEnd}
+    >
       <Sidebar active={section} onChange={handleSectionChange} />
 
       {section !== 'calls' && (
-        <div className="w-72 xl:w-80 flex-shrink-0 border-r border-border flex flex-col overflow-hidden">
+        <div className={`chat-list-panel flex-shrink-0 border-r border-border flex flex-col w-72 xl:w-80 ${listCollapsed ? 'collapsed' : ''}`}>
           <ChatList
             mode={section as 'chats' | 'groups'}
             selectedId={selected?.id}
-            onSelect={chat => setSelected({ id: chat.id, name: chat.name, avatar: chat.avatar, online: chat.online })}
+            onSelect={chat => {
+              setSelected({ id: chat.id, name: chat.name, avatar: chat.avatar, online: chat.online });
+              setListCollapsed(true);
+            }}
           />
         </div>
       )}
@@ -47,7 +71,19 @@ export default function Index() {
           {section === 'calls' ? (
             <CallsSection />
           ) : selected ? (
-            <ChatWindow name={selected.name} avatar={selected.avatar} online={selected.online} />
+            <>
+              {listCollapsed && (
+                <div className="absolute top-3 left-3 z-20">
+                  <button
+                    onClick={() => setListCollapsed(false)}
+                    className="w-9 h-9 rounded-xl glass-bright border border-border flex items-center justify-center hover:bg-secondary transition-colors"
+                  >
+                    <Icon name="ChevronLeft" size={18} className="text-foreground" />
+                  </button>
+                </div>
+              )}
+              <ChatWindow name={selected.name} avatar={selected.avatar} online={selected.online} />
+            </>
           ) : (
             <EmptyState section={section} />
           )}
@@ -59,7 +95,6 @@ export default function Index() {
     </div>
   );
 }
-
 
 function EmptyState({ section }: { section: Section }) {
   return (
