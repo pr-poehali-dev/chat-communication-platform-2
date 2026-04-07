@@ -97,7 +97,7 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
 
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex items-center gap-3 px-4 py-3 border-b border-border glass-bright flex-shrink-0">
+      <div className="flex items-center gap-3 px-4 py-3 border-b border-border glass-bright flex-shrink-0 relative z-10">
         <div className="relative">
           <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center text-xl">
             {avatar}
@@ -124,7 +124,7 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
             </button>
 
             {showMenu && (
-              <div className="absolute right-0 top-11 z-50 w-56 glass-bright rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
+              <div className="absolute right-0 top-11 z-[100] w-56 glass-bright rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
                 {menuItems.map((item, i) =>
                   'divider' in item ? (
                     <div key={i} className="h-px bg-border mx-2 my-1" />
