@@ -1,4 +1,5 @@
 import Icon from '@/components/ui/icon';
+import { MyProfile } from '@/components/chat/MyProfilePanel';
 
 type Section = 'chats' | 'groups' | 'calls';
 
@@ -6,6 +7,9 @@ interface SidebarProps {
   active: Section;
   onChange: (s: Section) => void;
   onlineCount?: number;
+  myProfile?: MyProfile;
+  statusColor?: string;
+  onProfileClick?: () => void;
 }
 
 const navItems = [
@@ -14,7 +18,14 @@ const navItems = [
   { id: 'calls' as Section, icon: 'Phone', label: 'Звонки' },
 ];
 
-export default function Sidebar({ active, onChange, onlineCount = 12 }: SidebarProps) {
+export default function Sidebar({
+  active,
+  onChange,
+  onlineCount = 12,
+  myProfile,
+  statusColor = 'bg-neon-green',
+  onProfileClick,
+}: SidebarProps) {
   return (
     <aside className="w-16 md:w-20 flex flex-col items-center py-6 gap-2 border-r border-border relative z-10">
       <div className="mb-6 flex flex-col items-center gap-1">
@@ -31,10 +42,7 @@ export default function Sidebar({ active, onChange, onlineCount = 12 }: SidebarP
               key={item.id}
               onClick={() => onChange(item.id)}
               className={`group relative w-12 h-12 rounded-2xl flex flex-col items-center justify-center gap-0.5 transition-all duration-200 hover-lift
-                ${isActive
-                  ? 'bg-primary/20 glow-purple'
-                  : 'hover:bg-secondary'
-                }`}
+                ${isActive ? 'bg-primary/20 glow-purple' : 'hover:bg-secondary'}`}
             >
               {isActive && (
                 <span className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-1 w-1 h-6 bg-primary rounded-full glow-purple" />
@@ -54,14 +62,29 @@ export default function Sidebar({ active, onChange, onlineCount = 12 }: SidebarP
 
       <div className="flex flex-col items-center gap-3 mt-auto">
         <div className="flex items-center gap-1">
-          <span className="w-2 h-2 rounded-full bg-neon-green animate-pulse-glow" />
+          <span className={`w-2 h-2 rounded-full ${statusColor} animate-pulse-glow`} />
           <span className="text-[10px] text-muted-foreground hidden md:block">{onlineCount}</span>
         </div>
-        <div className="w-8 h-8 rounded-full overflow-hidden gradient-border">
-          <div className="w-full h-full bg-gradient-to-br from-neon-purple to-neon-blue flex items-center justify-center text-sm font-bold text-white">
-            Я
+
+        <button
+          onClick={onProfileClick}
+          className="relative hover-lift transition-all group"
+          title="Мой профиль"
+        >
+          <div className="w-9 h-9 rounded-full gradient-border overflow-hidden">
+            {myProfile?.avatar ? (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 to-neon-blue/20 flex items-center justify-center text-lg">
+                {myProfile.avatar}
+              </div>
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-neon-purple to-neon-blue flex items-center justify-center text-sm font-bold text-white">
+                Я
+              </div>
+            )}
           </div>
-        </div>
+          <span className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-background ${statusColor}`} />
+          <div className="absolute inset-0 rounded-full ring-2 ring-primary/0 group-hover:ring-primary/40 transition-all" />
+        </button>
       </div>
     </aside>
   );

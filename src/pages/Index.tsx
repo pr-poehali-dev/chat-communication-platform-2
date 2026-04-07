@@ -4,6 +4,7 @@ import ChatList from '@/components/ChatList';
 import ChatWindow from '@/components/ChatWindow';
 import CallsSection from '@/components/CallsSection';
 import MembersList from '@/components/MembersList';
+import MyProfilePanel, { MyProfile } from '@/components/chat/MyProfilePanel';
 import Icon from '@/components/ui/icon';
 
 type Section = 'chats' | 'groups' | 'calls';
@@ -15,6 +16,14 @@ interface SelectedChat {
   online?: boolean;
 }
 
+const defaultProfile: MyProfile = {
+  name: 'Я',
+  username: 'my_account',
+  bio: 'Привет, я использую Вспышку!',
+  avatar: '😎',
+  status: 'online',
+};
+
 export default function Index() {
   const [section, setSection] = useState<Section>('chats');
   const [selected, setSelected] = useState<SelectedChat | null>({
@@ -25,6 +34,8 @@ export default function Index() {
   });
   const [listCollapsed, setListCollapsed] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
+  const [showMyProfile, setShowMyProfile] = useState(false);
+  const [myProfile, setMyProfile] = useState<MyProfile>(defaultProfile);
 
   const touchStartX = useRef<number | null>(null);
 
@@ -44,11 +55,9 @@ export default function Index() {
     const dx = touchStartX.current - e.changedTouches[0].clientX;
 
     if (section === 'groups' && selected && listCollapsed) {
-      // В групповом чате: свайп влево → открыть участников, свайп вправо → закрыть участников
       if (dx > 60) setMembersOpen(true);
       if (dx < -60) setMembersOpen(false);
     } else {
-      // В личных чатах: свайп влево → скрыть список, свайп вправо → показать список
       if (dx > 60) setListCollapsed(true);
       if (dx < -60) setListCollapsed(false);
     }
@@ -56,13 +65,34 @@ export default function Index() {
     touchStartX.current = null;
   };
 
+  const statusColor = {
+    online: 'bg-neon-green',
+    away: 'bg-yellow-400',
+    dnd: 'bg-destructive',
+    offline: 'bg-muted-foreground',
+  }[myProfile.status];
+
   return (
     <div
       className="h-screen flex overflow-hidden bg-background mesh-bg"
       onTouchStart={handleTouchStart}
       onTouchEnd={handleTouchEnd}
     >
-      <Sidebar active={section} onChange={handleSectionChange} />
+      {showMyProfile && (
+        <MyProfilePanel
+          profile={myProfile}
+          onSave={p => { setMyProfile(p); }}
+          onClose={() => setShowMyProfile(false)}
+        />
+      )}
+
+      <Sidebar
+        active={section}
+        onChange={handleSectionChange}
+        myProfile={myProfile}
+        statusColor={statusColor}
+        onProfileClick={() => setShowMyProfile(true)}
+      />
 
       {section !== 'calls' && (
         <div className={`chat-list-panel flex-shrink-0 border-r border-border flex flex-col w-72 xl:w-80 ${listCollapsed ? 'collapsed' : ''}`}>
@@ -101,18 +131,14 @@ export default function Index() {
           )}
         </div>
 
-        {/* Десктоп: панель участников всегда видна в группах */}
         {section === 'groups' && selected && (
           <div className="hidden md:block">
             <MembersList chatId={selected.id} />
           </div>
         )}
 
-        {/* Мобайл: панель участников как шторка справа */}
         {section === 'groups' && selected && (
-          <div
-            className={`md:hidden absolute inset-y-0 right-0 z-30 transition-transform duration-300 ease-in-out ${membersOpen ? 'translate-x-0' : 'translate-x-full'}`}
-          >
+          <div className={`md:hidden absolute inset-y-0 right-0 z-30 transition-transform duration-300 ease-in-out ${membersOpen ? 'translate-x-0' : 'translate-x-full'}`}>
             <div className="h-full w-64 bg-background border-l border-border flex flex-col shadow-2xl">
               <div className="flex items-center gap-2 px-3 py-3 border-b border-border">
                 <button
@@ -130,7 +156,6 @@ export default function Index() {
           </div>
         )}
 
-        {/* Подсказка на мобайле в групповом чате */}
         {section === 'groups' && selected && listCollapsed && !membersOpen && (
           <div className="md:hidden absolute bottom-20 right-3 z-20">
             <button
