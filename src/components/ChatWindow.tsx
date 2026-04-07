@@ -1,16 +1,23 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/icon';
+import ProfilePanel from '@/components/chat/ProfilePanel';
+import SearchPanel from '@/components/chat/SearchPanel';
+import MediaPanel from '@/components/chat/MediaPanel';
+import PinnedPanel from '@/components/chat/PinnedPanel';
+import NotificationsPanel from '@/components/chat/NotificationsPanel';
+import FavoritesPanel from '@/components/chat/FavoritesPanel';
 
-const menuItems = [
-  { icon: 'User', label: 'Профиль' },
-  { icon: 'Bell', label: 'Уведомления' },
-  { icon: 'Search', label: 'Поиск в чате' },
-  { icon: 'Pin', label: 'Закреплённые' },
-  { icon: 'FileText', label: 'Медиа и файлы' },
-  { icon: 'Link', label: 'Ссылки' },
-  { icon: 'Star', label: 'Избранное' },
+type PanelType = 'profile' | 'search' | 'media' | 'pinned' | 'notifications' | 'favorites' | null;
+
+const menuItems: { icon?: string; label?: string; panel?: PanelType; danger?: boolean; divider?: boolean }[] = [
+  { icon: 'User', label: 'Профиль', panel: 'profile' },
+  { icon: 'Bell', label: 'Уведомления', panel: 'notifications' },
+  { icon: 'Search', label: 'Поиск в чате', panel: 'search' },
+  { icon: 'Pin', label: 'Закреплённые', panel: 'pinned' },
+  { icon: 'FileText', label: 'Медиа и файлы', panel: 'media' },
+  { icon: 'Star', label: 'Избранное', panel: 'favorites' },
   { divider: true },
-  { icon: 'BellOff', label: 'Отключить звук' },
+  { icon: 'BellOff', label: 'Отключить звук', panel: 'notifications' },
   { icon: 'Archive', label: 'Архивировать' },
   { icon: 'Trash2', label: 'Очистить историю', danger: true },
   { icon: 'Ban', label: 'Заблокировать', danger: true },
@@ -52,6 +59,7 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
   const [showReactionFor, setShowReactionFor] = useState<number | null>(null);
   const [newMsgIds, setNewMsgIds] = useState<Set<number>>(new Set());
   const [showMenu, setShowMenu] = useState(false);
+  const [activePanel, setActivePanel] = useState<PanelType>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +77,11 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
     if (showMenu) document.addEventListener('mousedown', handleOutsideClick);
     return () => document.removeEventListener('mousedown', handleOutsideClick);
   }, [showMenu, handleOutsideClick]);
+
+  const openPanel = (panel?: PanelType) => {
+    if (panel) setActivePanel(panel);
+    setShowMenu(false);
+  };
 
   const send = (text: string, sticker?: string) => {
     if (!text.trim() && !sticker) return;
@@ -97,6 +110,27 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
 
   return (
     <div className="flex flex-col h-full relative">
+
+      {/* Панели поверх чата */}
+      {activePanel === 'profile' && (
+        <ProfilePanel name={name} avatar={avatar} online={online} onClose={() => setActivePanel(null)} />
+      )}
+      {activePanel === 'search' && (
+        <SearchPanel messages={messages} onClose={() => setActivePanel(null)} onJumpTo={() => setActivePanel(null)} />
+      )}
+      {activePanel === 'media' && (
+        <MediaPanel onClose={() => setActivePanel(null)} />
+      )}
+      {activePanel === 'pinned' && (
+        <PinnedPanel onClose={() => setActivePanel(null)} />
+      )}
+      {activePanel === 'notifications' && (
+        <NotificationsPanel onClose={() => setActivePanel(null)} />
+      )}
+      {activePanel === 'favorites' && (
+        <FavoritesPanel onClose={() => setActivePanel(null)} />
+      )}
+
       <div className="flex items-center gap-3 px-4 py-3 border-b border-border glass-bright flex-shrink-0 relative z-10">
         <div className="relative">
           <div className="w-10 h-10 rounded-2xl bg-secondary flex items-center justify-center text-xl">
@@ -104,10 +138,10 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
           </div>
           {online && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-neon-green rounded-full border-2 border-background" />}
         </div>
-        <div className="flex-1">
+        <button className="flex-1 text-left hover:opacity-80 transition-opacity" onClick={() => openPanel('profile')}>
           <div className="font-semibold text-sm text-foreground">{name}</div>
           <div className="text-xs text-neon-green">{online ? 'онлайн' : 'был(а) недавно'}</div>
-        </div>
+        </button>
         <div className="flex gap-2">
           <button className="w-9 h-9 rounded-xl hover:bg-secondary flex items-center justify-center transition-colors group">
             <Icon name="Phone" size={16} className="text-muted-foreground group-hover:text-neon-blue transition-colors" />
@@ -126,12 +160,12 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
             {showMenu && (
               <div className="absolute right-0 top-11 z-[100] w-56 glass-bright rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
                 {menuItems.map((item, i) =>
-                  'divider' in item ? (
+                  item.divider ? (
                     <div key={i} className="h-px bg-border mx-2 my-1" />
                   ) : (
                     <button
                       key={i}
-                      onClick={() => setShowMenu(false)}
+                      onClick={() => openPanel(item.panel)}
                       className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left
                         ${item.danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground hover:bg-secondary'}`}
                     >
@@ -240,21 +274,18 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
           <textarea
             value={input}
             onChange={e => setInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); }}}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
             placeholder="Напишите сообщение..."
             rows={1}
             className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none resize-none max-h-32 overflow-y-auto leading-relaxed py-1"
           />
-          <button
-            onClick={() => setShowStickers(!showStickers)}
-            className="flex-shrink-0 w-8 h-8 rounded-xl hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-          >
+          <button className="flex-shrink-0 w-8 h-8 rounded-xl hover:bg-secondary flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
             <Icon name="Paperclip" size={16} />
           </button>
           <button
             onClick={() => send(input)}
             disabled={!input.trim()}
-            className="flex-shrink-0 w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-40 transition-all hover:glow-purple hover-lift disabled:hover:transform-none"
+            className="flex-shrink-0 w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-primary-foreground disabled:opacity-40 transition-all hover-lift disabled:hover:transform-none"
           >
             <Icon name="Send" size={15} />
           </button>
