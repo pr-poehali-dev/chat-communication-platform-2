@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import Icon from '@/components/ui/icon';
 
-interface Chat {
+export interface Chat {
   id: number;
   name: string;
   avatar: string;
@@ -12,7 +12,7 @@ interface Chat {
   pinned?: boolean;
 }
 
-const chats: Chat[] = [
+export const initialChats: Chat[] = [
   { id: 1, name: 'Алина Звёздная', avatar: '🌙', lastMsg: 'Это просто огонь 🔥', time: '14:32', unread: 3, online: true, pinned: true },
   { id: 2, name: 'Максим Dev', avatar: '💻', lastMsg: 'Отправил пулл реквест', time: '13:15', online: true },
   { id: 3, name: 'Катя Фотограф', avatar: '📸', lastMsg: 'Смотри что снял вчера...', time: '12:05', unread: 1 },
@@ -22,7 +22,7 @@ const chats: Chat[] = [
   { id: 7, name: 'Лена Повар', avatar: '👩‍🍳', lastMsg: 'Рецепт скинула', time: 'вч.' },
 ];
 
-const groupChats: Chat[] = [
+export const initialGroups: Chat[] = [
   { id: 101, name: 'Команда Альфа 🚀', avatar: '🚀', lastMsg: 'Максим: Деплой прошёл!', time: '15:01', unread: 12, pinned: true },
   { id: 102, name: 'Друзья навсегда', avatar: '🎉', lastMsg: 'Катя: Завтра встречаемся?', time: '14:44', unread: 5 },
   { id: 103, name: 'Игровой клуб', avatar: '🎮', lastMsg: 'Дима: Кто играет?', time: '13:30' },
@@ -32,14 +32,15 @@ const groupChats: Chat[] = [
 
 interface ChatListProps {
   mode: 'chats' | 'groups';
+  chats: Chat[];
   onSelect: (chat: Chat) => void;
   selectedId?: number;
+  onAddClick?: () => void;
 }
 
-export default function ChatList({ mode, onSelect, selectedId }: ChatListProps) {
+export default function ChatList({ mode, chats, onSelect, selectedId, onAddClick }: ChatListProps) {
   const [search, setSearch] = useState('');
-  const data = mode === 'chats' ? chats : groupChats;
-  const filtered = data.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
+  const filtered = chats.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
     <div className="flex flex-col h-full">
@@ -48,7 +49,11 @@ export default function ChatList({ mode, onSelect, selectedId }: ChatListProps) 
           <h1 className="font-unbounded text-base font-bold text-foreground">
             {mode === 'chats' ? 'Личные чаты' : 'Группы'}
           </h1>
-          <button className="w-8 h-8 rounded-xl bg-primary/20 hover:bg-primary/30 flex items-center justify-center transition-colors">
+          <button
+            onClick={onAddClick}
+            className="w-8 h-8 rounded-xl bg-primary/20 hover:bg-primary/30 flex items-center justify-center transition-colors hover-lift"
+            title={mode === 'chats' ? 'Новый чат' : 'Создать группу'}
+          >
             <Icon name="Plus" size={16} className="text-primary" />
           </button>
         </div>
@@ -64,6 +69,15 @@ export default function ChatList({ mode, onSelect, selectedId }: ChatListProps) 
       </div>
 
       <div className="flex-1 overflow-y-auto scrollbar-thin py-2">
+        {filtered.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-10 gap-3 px-4 text-center">
+            <span className="text-3xl">💬</span>
+            <p className="text-sm text-muted-foreground">
+              {search ? 'Ничего не найдено' : 'Нет чатов — нажмите «+» чтобы добавить'}
+            </p>
+          </div>
+        )}
+
         {filtered.filter(c => c.pinned).length > 0 && (
           <div className="px-3 py-1">
             <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Закреплённые</span>
@@ -72,9 +86,11 @@ export default function ChatList({ mode, onSelect, selectedId }: ChatListProps) 
         {filtered.filter(c => c.pinned).map(chat => (
           <ChatItem key={chat.id} chat={chat} selected={selectedId === chat.id} onClick={() => onSelect(chat)} />
         ))}
-        {filtered.filter(c => c.pinned).length > 0 && (
+        {filtered.filter(c => c.pinned).length > 0 && filtered.filter(c => !c.pinned).length > 0 && (
           <div className="px-3 py-1 mt-1">
-            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">Все {mode === 'chats' ? 'чаты' : 'группы'}</span>
+            <span className="text-[10px] uppercase tracking-widest text-muted-foreground font-medium">
+              Все {mode === 'chats' ? 'чаты' : 'группы'}
+            </span>
           </div>
         )}
         {filtered.filter(c => !c.pinned).map(chat => (

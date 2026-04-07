@@ -1,10 +1,11 @@
 import { useState, useRef } from 'react';
 import Sidebar from '@/components/Sidebar';
-import ChatList from '@/components/ChatList';
+import ChatList, { Chat, initialChats, initialGroups } from '@/components/ChatList';
 import ChatWindow from '@/components/ChatWindow';
 import CallsSection from '@/components/CallsSection';
 import MembersList from '@/components/MembersList';
 import MyProfilePanel, { MyProfile } from '@/components/chat/MyProfilePanel';
+import AddFriendPanel, { Contact } from '@/components/chat/AddFriendPanel';
 import Icon from '@/components/ui/icon';
 
 type Section = 'chats' | 'groups' | 'calls';
@@ -27,15 +28,17 @@ const defaultProfile: MyProfile = {
 export default function Index() {
   const [section, setSection] = useState<Section>('chats');
   const [selected, setSelected] = useState<SelectedChat | null>({
-    id: 1,
-    name: 'Алина Звёздная',
-    avatar: '🌙',
-    online: true,
+    id: 1, name: 'Алина Звёздная', avatar: '🌙', online: true,
   });
   const [listCollapsed, setListCollapsed] = useState(false);
   const [membersOpen, setMembersOpen] = useState(false);
   const [showMyProfile, setShowMyProfile] = useState(false);
+  const [showAddFriend, setShowAddFriend] = useState(false);
   const [myProfile, setMyProfile] = useState<MyProfile>(defaultProfile);
+
+  const [chats, setChats] = useState<Chat[]>(initialChats);
+  const [groups] = useState<Chat[]>(initialGroups);
+  const [friends, setFriends] = useState<Contact[]>([]);
 
   const touchStartX = useRef<number | null>(null);
 
@@ -53,7 +56,6 @@ export default function Index() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX.current === null) return;
     const dx = touchStartX.current - e.changedTouches[0].clientX;
-
     if (section === 'groups' && selected && listCollapsed) {
       if (dx > 60) setMembersOpen(true);
       if (dx < -60) setMembersOpen(false);
@@ -61,9 +63,34 @@ export default function Index() {
       if (dx > 60) setListCollapsed(true);
       if (dx < -60) setListCollapsed(false);
     }
-
     touchStartX.current = null;
   };
+
+  // Создать чат с другом и сразу открыть
+  const startChatWithContact = (contact: Contact) => {
+    const exists = chats.find(c => c.id === contact.id);
+    if (!exists) {
+      const newChat: Chat = {
+        id: contact.id,
+        name: contact.name,
+        avatar: contact.avatar,
+        lastMsg: 'Начните общение',
+        time: 'сейчас',
+        online: true,
+      };
+      setChats(prev => [newChat, ...prev]);
+    }
+    setSection('chats');
+    setSelected({ id: contact.id, name: contact.name, avatar: contact.avatar, online: true });
+    setListCollapsed(true);
+    setShowAddFriend(false);
+  };
+
+  const handleFriendAdded = (contact: Contact) => {
+    setFriends(prev => prev.find(f => f.id === contact.id) ? prev : [...prev, { ...contact, status: 'friend' }]);
+  };
+
+  const currentChats = section === 'chats' ? chats : groups;
 
   const statusColor = {
     online: 'bg-neon-green',
@@ -81,7 +108,7 @@ export default function Index() {
       {showMyProfile && (
         <MyProfilePanel
           profile={myProfile}
-          onSave={p => { setMyProfile(p); }}
+          onSave={p => setMyProfile(p)}
           onClose={() => setShowMyProfile(false)}
         />
       )}
@@ -98,18 +125,30 @@ export default function Index() {
         <div className={`chat-list-panel flex-shrink-0 border-r border-border flex flex-col w-72 xl:w-80 ${listCollapsed ? 'collapsed' : ''}`}>
           <ChatList
             mode={section as 'chats' | 'groups'}
+            chats={currentChats}
             selectedId={selected?.id}
             onSelect={chat => {
               setSelected({ id: chat.id, name: chat.name, avatar: chat.avatar, online: chat.online });
               setListCollapsed(true);
               setMembersOpen(false);
             }}
+            onAddClick={() => setShowAddFriend(true)}
           />
         </div>
       )}
 
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Панель добавления друзей */}
+          {showAddFriend && (
+            <AddFriendPanel
+              friends={friends}
+              onFriendAdded={handleFriendAdded}
+              onStartChat={startChatWithContact}
+              onClose={() => setShowAddFriend(false)}
+            />
+          )}
+
           {section === 'calls' ? (
             <CallsSection />
           ) : selected ? (
@@ -127,7 +166,7 @@ export default function Index() {
               <ChatWindow name={selected.name} avatar={selected.avatar} online={selected.online} />
             </>
           ) : (
-            <EmptyState section={section} />
+            <EmptyState section={section} onAddClick={() => setShowAddFriend(true)} />
           )}
         </div>
 
@@ -171,7 +210,7 @@ export default function Index() {
   );
 }
 
-function EmptyState({ section }: { section: Section }) {
+function EmptyState({ section, onAddClick }: { section: Section; onAddClick: () => void }) {
   return (
     <div className="flex-1 flex flex-col items-center justify-center gap-4 text-center p-8 mesh-bg">
       <div className="text-6xl animate-float">
@@ -185,6 +224,15 @@ function EmptyState({ section }: { section: Section }) {
           Выберите разговор из списка слева, чтобы начать общение
         </p>
       </div>
+      {section === 'chats' && (
+        <button
+          onClick={onAddClick}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold hover-lift transition-all"
+        >
+          <Icon name="UserPlus" size={16} />
+          Найти людей
+        </button>
+      )}
     </div>
   );
 }
