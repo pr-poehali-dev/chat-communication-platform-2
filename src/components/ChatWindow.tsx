@@ -1,5 +1,20 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import Icon from '@/components/ui/icon';
+
+const menuItems = [
+  { icon: 'User', label: 'Профиль' },
+  { icon: 'Bell', label: 'Уведомления' },
+  { icon: 'Search', label: 'Поиск в чате' },
+  { icon: 'Pin', label: 'Закреплённые' },
+  { icon: 'FileText', label: 'Медиа и файлы' },
+  { icon: 'Link', label: 'Ссылки' },
+  { icon: 'Star', label: 'Избранное' },
+  { divider: true },
+  { icon: 'BellOff', label: 'Отключить звук' },
+  { icon: 'Archive', label: 'Архивировать' },
+  { icon: 'Trash2', label: 'Очистить историю', danger: true },
+  { icon: 'Ban', label: 'Заблокировать', danger: true },
+];
 
 interface Message {
   id: number;
@@ -36,11 +51,24 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
   const [hoveredMsg, setHoveredMsg] = useState<number | null>(null);
   const [showReactionFor, setShowReactionFor] = useState<number | null>(null);
   const [newMsgIds, setNewMsgIds] = useState<Set<number>>(new Set());
+  const [showMenu, setShowMenu] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleOutsideClick = useCallback((e: MouseEvent) => {
+    if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+      setShowMenu(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (showMenu) document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showMenu, handleOutsideClick]);
 
   const send = (text: string, sticker?: string) => {
     if (!text.trim() && !sticker) return;
@@ -87,9 +115,34 @@ export default function ChatWindow({ name, avatar, online }: ChatWindowProps) {
           <button className="w-9 h-9 rounded-xl hover:bg-secondary flex items-center justify-center transition-colors group">
             <Icon name="Video" size={16} className="text-muted-foreground group-hover:text-neon-purple transition-colors" />
           </button>
-          <button className="w-9 h-9 rounded-xl hover:bg-secondary flex items-center justify-center transition-colors group">
-            <Icon name="MoreVertical" size={16} className="text-muted-foreground group-hover:text-foreground transition-colors" />
-          </button>
+          <div className="relative" ref={menuRef}>
+            <button
+              onClick={() => setShowMenu(p => !p)}
+              className={`w-9 h-9 rounded-xl flex items-center justify-center transition-colors group ${showMenu ? 'bg-primary/20' : 'hover:bg-secondary'}`}
+            >
+              <Icon name="MoreVertical" size={16} className={showMenu ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground transition-colors'} />
+            </button>
+
+            {showMenu && (
+              <div className="absolute right-0 top-11 z-50 w-56 glass-bright rounded-2xl shadow-2xl border border-border overflow-hidden animate-fade-in">
+                {menuItems.map((item, i) =>
+                  'divider' in item ? (
+                    <div key={i} className="h-px bg-border mx-2 my-1" />
+                  ) : (
+                    <button
+                      key={i}
+                      onClick={() => setShowMenu(false)}
+                      className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-colors text-left
+                        ${item.danger ? 'text-destructive hover:bg-destructive/10' : 'text-foreground hover:bg-secondary'}`}
+                    >
+                      <Icon name={item.icon!} size={15} className={item.danger ? 'text-destructive' : 'text-muted-foreground'} fallback="Circle" />
+                      {item.label}
+                    </button>
+                  )
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
